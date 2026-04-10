@@ -1,0 +1,1003 @@
+<!doctype html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blood Bank - Save Lives</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50%       { transform: scale(1.05); opacity: 0.9; }
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50%       { transform: translateY(-20px); }
+    }
+
+    .fade-in-up       { animation: fadeInUp 0.6s ease-out forwards; }
+    .pulse-animation  { animation: pulse 2s ease-in-out infinite; }
+    .float-animation  { animation: float 6s ease-in-out infinite; }
+
+    .hero-gradient {
+      background: linear-gradient(135deg, #7f1d1d 0%, #dc2626 50%, #ef4444 100%);
+    }
+    .glass-card {
+      background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.4);
+    }
+    /* FIX #5: replaced broken inline SVG background with a clean CSS pattern */
+    .blood-pattern {
+      background-image:
+        radial-gradient(circle at 20% 50%, rgba(220,38,38,0.08) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(185,28,28,0.12) 0%, transparent 50%),
+        radial-gradient(circle at 40% 20%, rgba(239,68,68,0.08) 0%, transparent 50%);
+    }
+    .card-hover { transition: all 0.3s ease; }
+    .card-hover:hover { transform: translateY(-8px); box-shadow: 0 20px 40px rgba(220,38,38,0.15); }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+      transition: all 0.3s ease;
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(220,38,38,0.4); }
+
+    .section-padding { padding-top: 5rem; padding-bottom: 5rem; }
+
+    /* Admin tab styles */
+    .admin-tab { color: #6b7280; transition: all 0.2s; }
+    .admin-tab:hover { color: #dc2626; background: rgba(220,38,38,0.05); }
+    .admin-tab-active { background: linear-gradient(135deg,#dc2626 0%,#b91c1c 100%); color: white; }
+
+    /* FIX #3: Intro screen with skip button */
+    #intro-screen {
+      position: fixed; inset: 0; background: #000;
+      z-index: 9999; display: flex; align-items: center; justify-content: center;
+    }
+    #intro-skip-btn {
+      position: absolute; bottom: 32px; right: 32px;
+      background: rgba(255,255,255,0.15); color: #fff;
+      border: 1px solid rgba(255,255,255,0.4);
+      padding: 8px 20px; border-radius: 999px;
+      font-size: 14px; cursor: pointer; font-family: 'Poppins', sans-serif;
+      transition: background 0.2s;
+    }
+    #intro-skip-btn:hover { background: rgba(255,255,255,0.3); }
+  </style>
+</head>
+<body class="h-full">
+
+  <!-- FIX #3 & #4: Intro screen with fallback timeout + skip button -->
+  <div id="intro-screen">
+    <video id="intro-video" style="width:100%;height:100%;object-fit:cover;" autoplay muted playsinline>
+      <source src="intro.mp4" type="video/mp4">
+      <!-- If video is missing the onerror handler below will auto-dismiss -->
+    </video>
+    <button id="intro-skip-btn" onclick="dismissIntro()">Skip ▶</button>
+  </div>
+
+  <div id="app" class="h-full w-full overflow-auto" style="background-color:#fef2f2;">
+
+    <!-- ========== PUBLIC WEBSITE ========== -->
+    <div id="public-site">
+
+      <!-- Floating Blood Drops -->
+      <div class="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <svg class="absolute top-10 left-10 w-20 h-20 text-red-200 opacity-20 float-animation" style="animation-delay:0s;" viewBox="0 0 40 40" fill="currentColor"><path d="M20 4C20 4 8 18 8 26C8 32.627 13.373 38 20 38C26.627 38 32 32.627 32 26C32 18 20 4 20 4Z"/></svg>
+        <svg class="absolute top-32 right-20 w-16 h-16 text-red-300 opacity-15 float-animation" style="animation-delay:1s;" viewBox="0 0 40 40" fill="currentColor"><path d="M20 4C20 4 8 18 8 26C8 32.627 13.373 38 20 38C26.627 38 32 32.627 32 26C32 18 20 4 20 4Z"/></svg>
+        <svg class="absolute bottom-20 left-1/4 w-24 h-24 text-red-200 opacity-20 float-animation" style="animation-delay:2s;" viewBox="0 0 40 40" fill="currentColor"><path d="M20 4C20 4 8 18 8 26C8 32.627 13.373 38 20 38C26.627 38 32 32.627 32 26C32 18 20 4 20 4Z"/></svg>
+      </div>
+
+      <!-- Header -->
+      <header class="glass-card sticky top-0 z-50 shadow-xl border-b-2 border-red-500">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="relative">
+                <div class="absolute inset-0 bg-red-500 blur-xl opacity-40 rounded-full"></div>
+                <svg class="w-12 h-12 pulse-animation relative z-10" viewBox="0 0 40 40" fill="none">
+                  <defs><linearGradient id="gradient1" x1="20" y1="4" x2="20" y2="38"><stop offset="0%" stop-color="#dc2626"/><stop offset="100%" stop-color="#991b1b"/></linearGradient></defs>
+                  <path d="M20 4C20 4 8 18 8 26C8 32.627 13.373 38 20 38C26.627 38 32 32.627 32 26C32 18 20 4 20 4Z" fill="url(#gradient1)"/>
+                </svg>
+              </div>
+              <div>
+                <h1 id="site-title" class="text-2xl font-bold bg-gradient-to-r from-red-600 to-red-800 bg-clip-text text-transparent">LifeFlow Blood Bank</h1>
+                <p id="tagline" class="text-xs text-gray-600 font-medium">Saving Lives, One Drop at a Time</p>
+              </div>
+            </div>
+            <button onclick="showAdminLogin()" class="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-all">
+              <span>🔐</span><span>Admin Login</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Hero -->
+      <section class="hero-gradient relative overflow-hidden">
+        <div class="max-w-7xl mx-auto px-4 py-24 relative z-10">
+          <div class="text-center text-white fade-in-up">
+            <h2 id="hero-title" class="text-5xl md:text-6xl font-bold mb-6 leading-tight">Donate Blood,<br>Save Lives</h2>
+            <p id="hero-subtitle" class="text-xl md:text-2xl mb-10 text-red-100 max-w-3xl mx-auto">Every donation can save up to three lives. Join our mission to ensure no patient suffers due to blood shortage.</p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+              <button onclick="scrollToSection('donate')" class="btn-primary text-white px-10 py-4 rounded-full font-bold text-lg shadow-2xl">❤️ <span id="donate-btn-text">Become a Donor</span></button>
+              <button onclick="scrollToSection('request')" class="bg-white text-red-600 px-10 py-4 rounded-full font-bold text-lg shadow-2xl hover:bg-red-50 transition-all">🏥 <span id="request-btn-text">Request Blood</span></button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Blood Availability -->
+      <section id="availability" class="section-padding blood-pattern relative z-10">
+        <div class="max-w-7xl mx-auto px-4">
+          <div class="text-center mb-12 fade-in-up">
+            <h3 class="text-4xl font-bold text-gray-900 mb-4">Blood Availability</h3>
+            <p class="text-lg text-gray-600">Real-time blood stock levels at our blood bank</p>
+          </div>
+          <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-12" id="blood-availability-grid"></div>
+          <div class="glass-card rounded-3xl p-8 shadow-2xl max-w-4xl mx-auto">
+            <h4 class="text-2xl font-bold text-gray-900 mb-6 text-center">Stock Overview</h4>
+            <canvas id="publicStockChart"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- Donor Registration -->
+      <section id="donate" class="section-padding bg-gradient-to-br from-red-50 to-pink-50 relative z-10">
+        <div class="max-w-4xl mx-auto px-4">
+          <div class="text-center mb-12 fade-in-up">
+            <h3 class="text-4xl font-bold text-gray-900 mb-4">Register as Blood Donor</h3>
+            <p class="text-lg text-gray-600">Fill out this form to become a lifesaver today</p>
+          </div>
+          <div class="glass-card rounded-3xl p-8 shadow-2xl">
+            <form id="donor-form" class="space-y-6">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label for="donor-name" class="block text-sm font-semibold text-gray-700 mb-2">Full Name *</label>
+                  <input type="text" id="donor-name" required class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all">
+                </div>
+                <div>
+                  <label for="donor-blood" class="block text-sm font-semibold text-gray-700 mb-2">Blood Type *</label>
+                  <select id="donor-blood" required class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all">
+                    <option value="">Select blood type</option>
+                    <option>A+</option><option>A-</option><option>B+</option><option>B-</option>
+                    <option>AB+</option><option>AB-</option><option>O+</option><option>O-</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="donor-age" class="block text-sm font-semibold text-gray-700 mb-2">Age (18–65) *</label>
+                  <input type="number" id="donor-age" min="18" max="65" required class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all">
+                </div>
+                <div>
+                  <label for="donor-weight" class="block text-sm font-semibold text-gray-700 mb-2">Weight (kg, min 50) *</label>
+                  <input type="number" id="donor-weight" min="50" required class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all">
+                </div>
+                <div>
+                  <label for="donor-email" class="block text-sm font-semibold text-gray-700 mb-2">Email Address *</label>
+                  <input type="email" id="donor-email" required class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all">
+                </div>
+                <div>
+                  <!-- FIX #7: stronger phone validation — 7 to 15 digits with optional +, spaces, dashes -->
+                  <label for="donor-contact" class="block text-sm font-semibold text-gray-700 mb-2">Phone Number *</label>
+                  <input type="tel" id="donor-contact" required
+                    pattern="^[+]?[\d\s\-()]{7,15}$"
+                    title="Enter a valid phone number (7–15 digits)"
+                    class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all">
+                </div>
+              </div>
+              <div>
+                <label for="donor-last-donation" class="block text-sm font-semibold text-gray-700 mb-2">Last Donation Date (optional)</label>
+                <input type="date" id="donor-last-donation" class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all">
+              </div>
+              <div class="bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
+                <p class="text-sm text-blue-900 font-medium mb-2">✅ Eligibility Criteria:</p>
+                <ul class="text-sm text-blue-800 space-y-1">
+                  <li>• Age between 18–65 years</li>
+                  <li>• Minimum weight of 50 kg</li>
+                  <li>• Can donate once every 90 days</li>
+                  <li>• Must be in good health</li>
+                </ul>
+              </div>
+              <button type="submit" id="donor-submit" class="w-full btn-primary text-white px-8 py-4 rounded-xl font-bold text-lg shadow-xl">❤️ Register as Donor</button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <!-- Blood Request -->
+      <section id="request" class="section-padding blood-pattern relative z-10">
+        <div class="max-w-4xl mx-auto px-4">
+          <div class="text-center mb-12 fade-in-up">
+            <h3 class="text-4xl font-bold text-gray-900 mb-4">Request Blood</h3>
+            <p class="text-lg text-gray-600">Submit a blood requirement request for your hospital or patient</p>
+          </div>
+          <div class="glass-card rounded-3xl p-8 shadow-2xl">
+            <form id="request-form" class="space-y-6">
+              <div>
+                <label for="req-hospital" class="block text-sm font-semibold text-gray-700 mb-2">Hospital / Institution Name *</label>
+                <input type="text" id="req-hospital" required class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label for="req-blood" class="block text-sm font-semibold text-gray-700 mb-2">Blood Type Needed *</label>
+                  <select id="req-blood" required class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+                    <option value="">Select blood type</option>
+                    <option>A+</option><option>A-</option><option>B+</option><option>B-</option>
+                    <option>AB+</option><option>AB-</option><option>O+</option><option>O-</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="req-units" class="block text-sm font-semibold text-gray-700 mb-2">Units Required *</label>
+                  <input type="number" id="req-units" min="1" required class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+                </div>
+              </div>
+              <div>
+                <label for="req-urgency" class="block text-sm font-semibold text-gray-700 mb-2">Urgency Level *</label>
+                <select id="req-urgency" required class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+                  <option value="normal">Normal (Within 24 hours)</option>
+                  <option value="urgent">Urgent (Within 6 hours)</option>
+                  <option value="critical">Critical (Immediate)</option>
+                </select>
+              </div>
+              <button type="submit" id="request-submit" class="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 py-4 rounded-xl font-bold text-lg shadow-xl transition-all">🏥 Submit Blood Request</button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <!-- Contact -->
+      <section id="contact" class="section-padding bg-gradient-to-br from-gray-50 to-gray-100 relative z-10">
+        <div class="max-w-7xl mx-auto px-4">
+          <div class="text-center mb-12 fade-in-up">
+            <h3 class="text-4xl font-bold text-gray-900 mb-4">Contact Us</h3>
+            <p class="text-lg text-gray-600">Reach out to us for any queries or emergency blood requirements</p>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="glass-card rounded-3xl p-8 text-center shadow-xl card-hover">
+              <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center shadow-lg"><span class="text-3xl">📞</span></div>
+              <h4 class="text-xl font-bold text-gray-900 mb-2">Emergency Helpline</h4>
+              <p id="helpline-display" class="text-2xl font-bold text-red-600 mb-1">+1-800-BLOOD-01</p>
+              <p class="text-sm text-gray-600">Available 24/7</p>
+            </div>
+            <div class="glass-card rounded-3xl p-8 text-center shadow-xl card-hover">
+              <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shadow-lg"><span class="text-3xl">📧</span></div>
+              <h4 class="text-xl font-bold text-gray-900 mb-2">Email Us</h4>
+              <p id="email-display" class="text-xl font-bold text-blue-600 mb-1"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="86efe8e0e9c6eaefe0e3e0eae9f1a8e9f4e1">[email&#160;protected]</a></p>
+              <p class="text-sm text-gray-600">We'll respond within 24 hours</p>
+            </div>
+            <div class="glass-card rounded-3xl p-8 text-center shadow-xl card-hover">
+              <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-green-500 to-green-700 flex items-center justify-center shadow-lg"><span class="text-3xl">🕐</span></div>
+              <h4 class="text-xl font-bold text-gray-900 mb-2">Operating Hours</h4>
+              <p class="text-xl font-bold text-green-600 mb-1">24/7 Service</p>
+              <p class="text-sm text-gray-600">Always here to help</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Footer — FIX #9: dynamic year -->
+      <footer class="glass-card border-t-2 border-red-200 relative z-10">
+        <div class="max-w-7xl mx-auto px-4 py-8 text-center">
+          <p id="footer-text" class="text-gray-700 font-medium mb-2">Saving lives together - Every drop counts</p>
+          <p class="text-gray-500 text-sm">© <span id="footer-year"></span> LifeFlow Blood Bank. All rights reserved.</p>
+        </div>
+      </footer>
+    </div><!-- /public-site -->
+
+    <!-- ========== ADMIN DASHBOARD ========== -->
+    <div id="admin-dashboard" class="hidden">
+      <header class="glass-card sticky top-0 z-50 shadow-xl border-b-2 border-red-500">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <svg class="w-10 h-10" viewBox="0 0 40 40" fill="none">
+              <defs><linearGradient id="gradient2" x1="20" y1="4" x2="20" y2="38"><stop offset="0%" stop-color="#dc2626"/><stop offset="100%" stop-color="#991b1b"/></linearGradient></defs>
+              <path d="M20 4C20 4 8 18 8 26C8 32.627 13.373 38 20 38C26.627 38 32 32.627 32 26C32 18 20 4 20 4Z" fill="url(#gradient2)"/>
+            </svg>
+            <div>
+              <h1 class="text-xl font-bold text-gray-900">Admin Dashboard</h1>
+              <p class="text-xs text-gray-600">Management Portal</p>
+            </div>
+          </div>
+          <div class="flex gap-3">
+            <button onclick="backToPublicSite()" class="px-4 py-2 text-sm font-semibold text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-all">🌐 Public Site</button>
+            <button onclick="handleLogout()" class="px-4 py-2 text-sm font-semibold text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-all">🚪 Logout</button>
+          </div>
+        </div>
+      </header>
+
+      <!-- FIX #10: tabs all start as admin-tab; JS sets active one -->
+      <nav class="glass-card border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4">
+          <div class="flex gap-1 overflow-x-auto">
+            <button onclick="switchAdminTab('stats')"     id="admin-tab-stats"     class="admin-tab py-3 px-5 font-semibold text-sm whitespace-nowrap rounded-t-lg">📊 Statistics</button>
+            <button onclick="switchAdminTab('donors')"    id="admin-tab-donors"    class="admin-tab py-3 px-5 font-semibold text-sm whitespace-nowrap">👥 Donors</button>
+            <button onclick="switchAdminTab('inventory')" id="admin-tab-inventory" class="admin-tab py-3 px-5 font-semibold text-sm whitespace-nowrap">📦 Inventory</button>
+            <button onclick="switchAdminTab('requests')"  id="admin-tab-requests"  class="admin-tab py-3 px-5 font-semibold text-sm whitespace-nowrap">🏥 Requests</button>
+          </div>
+        </div>
+      </nav>
+
+      <main class="max-w-7xl mx-auto px-4 py-8">
+        <!-- Stats -->
+        <div id="admin-view-stats" class="hidden">
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="glass-card rounded-2xl p-6 shadow-lg border-l-4 border-red-500">
+              <p class="text-gray-600 text-sm font-medium mb-1">Total Donors</p>
+              <p id="admin-stat-donors" class="text-4xl font-bold text-gray-900">0</p>
+            </div>
+            <div class="glass-card rounded-2xl p-6 shadow-lg border-l-4 border-green-500">
+              <p class="text-gray-600 text-sm font-medium mb-1">Total Units</p>
+              <p id="admin-stat-units" class="text-4xl font-bold text-gray-900">0</p>
+            </div>
+            <div class="glass-card rounded-2xl p-6 shadow-lg border-l-4 border-yellow-500">
+              <p class="text-gray-600 text-sm font-medium mb-1">Pending Requests</p>
+              <p id="admin-stat-pending" class="text-4xl font-bold text-gray-900">0</p>
+            </div>
+            <div class="glass-card rounded-2xl p-6 shadow-lg border-l-4 border-blue-500">
+              <p class="text-gray-600 text-sm font-medium mb-1">Fulfilled Today</p>
+              <p id="admin-stat-fulfilled" class="text-4xl font-bold text-gray-900">0</p>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="glass-card rounded-2xl p-6 shadow-lg">
+              <h3 class="text-lg font-bold text-gray-900 mb-4">Blood Stock</h3>
+              <canvas id="adminStockChart"></canvas>
+            </div>
+            <div class="glass-card rounded-2xl p-6 shadow-lg">
+              <h3 class="text-lg font-bold text-gray-900 mb-4">Requests Overview</h3>
+              <canvas id="adminRequestsChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Donors -->
+        <div id="admin-view-donors" class="hidden">
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold text-gray-900">Registered Donors</h2>
+            <input type="text" id="admin-donor-search" placeholder="🔍 Search donors..." class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 w-64">
+          </div>
+          <div class="glass-card rounded-2xl shadow-lg overflow-hidden">
+            <div id="admin-donors-list" class="divide-y"><p class="text-gray-500 text-center py-12">No donors registered yet.</p></div>
+          </div>
+        </div>
+
+        <!-- Inventory -->
+        <div id="admin-view-inventory" class="hidden">
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold text-gray-900">Blood Inventory</h2>
+            <button onclick="showAddInventoryModal()" class="btn-primary text-white px-5 py-2 rounded-lg font-semibold text-sm shadow-lg">+ Add Stock</button>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" id="admin-inventory-cards">
+            <p class="text-gray-500 text-center py-12 col-span-full">No inventory records.</p>
+          </div>
+        </div>
+
+        <!-- Requests -->
+        <div id="admin-view-requests" class="hidden">
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold text-gray-900">Blood Requests</h2>
+            <select id="admin-request-filter" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+              <option value="all">All Requests</option>
+              <option value="pending">Pending</option>
+              <option value="fulfilled">Fulfilled</option>
+            </select>
+          </div>
+          <div class="glass-card rounded-2xl shadow-lg overflow-hidden">
+            <div id="admin-requests-list" class="divide-y"><p class="text-gray-500 text-center py-12">No blood requests.</p></div>
+          </div>
+        </div>
+      </main>
+    </div><!-- /admin-dashboard -->
+
+    <!-- Modal -->
+    <div id="modal-overlay" class="hidden fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4">
+      <div id="modal-content" class="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90%] overflow-auto"></div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast-container" class="fixed bottom-4 right-4 z-[200] space-y-2"></div>
+  </div><!-- /app -->
+
+  <script>
+    // ─────────────────────────────────────────────
+    // Intro video with fallback + skip
+    // ─────────────────────────────────────────────
+    function dismissIntro() {
+      const introScreen = document.getElementById('intro-screen');
+      introScreen.style.opacity = '0';
+      introScreen.style.transition = 'opacity 0.8s ease';
+      setTimeout(() => { introScreen.style.display = 'none'; }, 800);
+    }
+
+    (function setupIntro() {
+      const video = document.getElementById('intro-video');
+      const FALLBACK_MS = 5000;
+      video.addEventListener('ended', dismissIntro);
+      video.addEventListener('error', dismissIntro);
+      const fallback = setTimeout(dismissIntro, FALLBACK_MS);
+      video.addEventListener('ended', () => clearTimeout(fallback));
+    })();
+
+    // Dynamic copyright year
+    document.getElementById('footer-year').textContent = new Date().getFullYear();
+
+    // ─────────────────────────────────────────────
+    // Config & globals
+    // ─────────────────────────────────────────────
+    const config = {
+      site_title:     'LifeFlow Blood Bank',
+      tagline:        'Saving Lives, One Drop at a Time',
+      hero_title:     'Donate Blood, Save Lives',
+      hero_subtitle:  'Every donation can save up to three lives. Join our mission to ensure no patient suffers due to blood shortage.',
+      donate_button:  'Become a Donor',
+      request_button: 'Request Blood',
+      helpline_number:'+1-800-BLOOD-01',
+      email_address:  'info@lifeflow.org',
+      footer_text:    'Saving lives together - Every drop counts'
+    };
+
+    const bloodTypes = ['A+','A-','B+','B-','AB+','AB-','O+','O-'];
+    let isAuthenticated = sessionStorage.getItem('adminToken') ? true : false;
+    let publicStockChart = null, adminStockChart = null, adminRequestsChart = null;
+
+    // ─────────────────────────────────────────────
+    // API helper — attaches JWT if available
+    // ─────────────────────────────────────────────
+    async function api(path, options = {}) {
+      const token = sessionStorage.getItem('adminToken');
+      const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+const res = await fetch('http://localhost:3001' + path, { ...options, headers });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || data.error || `HTTP ${res.status}`);
+      return data;
+    }
+
+    // ─────────────────────────────────────────────
+    // Init
+    // ─────────────────────────────────────────────
+    function initApp() {
+      document.getElementById('donor-form').addEventListener('submit', handleDonorSubmit);
+      document.getElementById('request-form').addEventListener('submit', handleRequestSubmit);
+      document.getElementById('admin-donor-search').addEventListener('input', filterAdminDonors);
+      document.getElementById('admin-request-filter').addEventListener('change', filterAdminRequests);
+      applyConfig();
+      updatePublicBloodAvailability();
+      if (isAuthenticated) showAdminDashboard();
+    }
+
+    function applyConfig() {
+      document.getElementById('site-title').textContent        = config.site_title;
+      document.getElementById('tagline').textContent           = config.tagline;
+      document.getElementById('hero-title').textContent        = config.hero_title;
+      document.getElementById('hero-subtitle').textContent     = config.hero_subtitle;
+      document.getElementById('donate-btn-text').textContent   = config.donate_button;
+      document.getElementById('request-btn-text').textContent  = config.request_button;
+      document.getElementById('helpline-display').textContent  = config.helpline_number;
+      document.getElementById('email-display').textContent     = config.email_address;
+      document.getElementById('footer-text').textContent       = config.footer_text;
+    }
+
+    function updateAllUI() {
+      updatePublicBloodAvailability();
+      updateAdminStats();
+      updateAdminDonorsList();
+      updateAdminInventory();
+      updateAdminRequests();
+      if (!document.getElementById('admin-dashboard').classList.contains('hidden')) {
+        updateAdminCharts();
+      }
+    }
+
+    // ─────────────────────────────────────────────
+    // Public: blood availability (from real API)
+    // ─────────────────────────────────────────────
+    async function updatePublicBloodAvailability() {
+      let stockMap = {};
+      try {
+        const rows = await api('/api/public/inventory');
+        rows.forEach(r => { stockMap[r.blood_type] = r.units || 0; });
+      } catch(e) {
+        bloodTypes.forEach(t => stockMap[t] = 0);
+      }
+
+      const container = document.getElementById('blood-availability-grid');
+      container.innerHTML = bloodTypes.map(type => {
+        const units = stockMap[type] || 0;
+        const sc = units === 0 ? 'from-red-100 to-red-200 border-red-400'
+                 : units < 5  ? 'from-yellow-100 to-yellow-200 border-yellow-400'
+                 :               'from-green-100 to-green-200 border-green-400';
+        const tc = units === 0 ? 'text-red-700' : units < 5 ? 'text-yellow-700' : 'text-green-700';
+        const icon = units === 0 ? '❌' : units < 5 ? '⚠️' : '✅';
+        return `
+          <div class="glass-card rounded-2xl p-5 text-center border-2 bg-gradient-to-br ${sc} transition-all hover:scale-105 shadow-lg">
+            <div class="flex justify-between items-center mb-2">
+              <p class="text-2xl font-bold ${tc}">${type}</p><span class="text-lg">${icon}</span>
+            </div>
+            <p class="text-3xl font-bold text-gray-900">${units}</p>
+            <p class="text-xs text-gray-600 font-medium">units</p>
+          </div>`;
+      }).join('');
+
+      updatePublicChart(stockMap);
+    }
+
+    function updatePublicChart(stockMap) {
+      const stockData = bloodTypes.map(t => stockMap[t] || 0);
+      if (publicStockChart) publicStockChart.destroy();
+      publicStockChart = new Chart(document.getElementById('publicStockChart').getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: bloodTypes,
+          datasets: [{ label:'Units Available', data: stockData,
+            backgroundColor:'rgba(220,38,38,0.7)', borderColor:'rgba(220,38,38,1)',
+            borderWidth:2, borderRadius:10 }]
+        },
+        options: { responsive:true, maintainAspectRatio:true,
+          plugins:{ legend:{ display:false } },
+          scales:{ y:{ beginAtZero:true, ticks:{ stepSize:1 } } } }
+      });
+    }
+
+    // ─────────────────────────────────────────────
+    // Donor form — POST to backend
+    // ─────────────────────────────────────────────
+    async function handleDonorSubmit(e) {
+      e.preventDefault();
+      const age    = parseInt(document.getElementById('donor-age').value);
+      const weight = parseInt(document.getElementById('donor-weight').value);
+      if (age < 18 || age > 65)  { showToast('Age must be between 18 and 65 years.','error'); return; }
+      if (weight < 50)           { showToast('Weight must be at least 50 kg.','error'); return; }
+
+      const btn = document.getElementById('donor-submit');
+      btn.disabled = true; btn.textContent = 'Submitting…';
+
+      try {
+        await api('/api/donors', {
+          method: 'POST',
+          body: JSON.stringify({
+            donor_name:    document.getElementById('donor-name').value,
+            blood_type:    document.getElementById('donor-blood').value,
+            email:         document.getElementById('donor-email').value,
+            contact:       document.getElementById('donor-contact').value,
+            age, weight,
+            last_donation: document.getElementById('donor-last-donation').value || null,
+          })
+        });
+        e.target.reset();
+        showToast('✅ Thank you for registering! We will contact you soon.','success');
+        updatePublicBloodAvailability();
+      } catch(err) {
+        showToast('❌ ' + err.message, 'error');
+      } finally {
+        btn.disabled = false; btn.textContent = '❤️ Register as Donor';
+      }
+    }
+
+    // ─────────────────────────────────────────────
+    // Request form — POST to backend
+    // ─────────────────────────────────────────────
+    async function handleRequestSubmit(e) {
+      e.preventDefault();
+      const btn = document.getElementById('request-submit');
+      btn.disabled = true; btn.textContent = 'Submitting…';
+
+      try {
+        await api('/api/requests', {
+          method: 'POST',
+          body: JSON.stringify({
+            hospital:   document.getElementById('req-hospital').value,
+            blood_type: document.getElementById('req-blood').value,
+            units:      parseInt(document.getElementById('req-units').value),
+            urgency:    document.getElementById('req-urgency').value,
+          })
+        });
+        e.target.reset();
+        showToast('✅ Request submitted successfully! We will process it soon.','success');
+      } catch(err) {
+        showToast('❌ ' + err.message, 'error');
+      } finally {
+        btn.disabled = false; btn.textContent = '🏥 Submit Blood Request';
+      }
+    }
+
+    // ─────────────────────────────────────────────
+    // Admin Login — POST to backend, store JWT
+    // ─────────────────────────────────────────────
+    function showAdminLogin() {
+      showModal(`
+        <div class="p-6">
+          <div class="text-center mb-6">
+            <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center shadow-lg"><span class="text-3xl">🔐</span></div>
+            <h3 class="text-2xl font-bold text-gray-900">Admin Login</h3>
+            <p class="text-sm text-gray-600 mt-2">Enter your credentials to access the admin dashboard</p>
+          </div>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">Username</label>
+              <input type="text" id="admin-username" autocomplete="username"
+                class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500">
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">Password</label>
+              <input type="password" id="admin-password" autocomplete="current-password"
+                class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500">
+            </div>
+            <div id="login-error" class="hidden text-red-600 text-sm text-center bg-red-50 p-3 rounded-lg"></div>
+            <div class="flex gap-3 pt-2">
+              <button type="button" onclick="hideModal()" class="flex-1 px-4 py-3 border-2 border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 font-semibold">Cancel</button>
+              <button id="login-btn" onclick="handleAdminLogin()" class="flex-1 btn-primary text-white px-4 py-3 rounded-xl font-semibold">🔓 Login</button>
+            </div>
+          </div>
+        </div>`);
+    }
+
+    async function handleAdminLogin() {
+      const loginBtn = document.getElementById('login-btn');
+      loginBtn.disabled = true; loginBtn.textContent = 'Checking…';
+      const errorDiv = document.getElementById('login-error');
+      errorDiv.classList.add('hidden');
+
+      const username = document.getElementById('admin-username').value;
+      const password = document.getElementById('admin-password').value;
+
+      try {
+        const data = await api('/api/admin/login', {
+          method: 'POST',
+          body: JSON.stringify({ username, password })
+        });
+        sessionStorage.setItem('adminToken', data.token);
+        isAuthenticated = true;
+        hideModal();
+        showAdminDashboard();
+        showToast('Welcome to Admin Dashboard!','success');
+      } catch(err) {
+        errorDiv.textContent = '❌ ' + err.message;
+        errorDiv.classList.remove('hidden');
+        loginBtn.disabled = false; loginBtn.textContent = '🔓 Login';
+      }
+    }
+
+    function showAdminDashboard() {
+      document.getElementById('public-site').classList.add('hidden');
+      document.getElementById('admin-dashboard').classList.remove('hidden');
+      switchAdminTab('stats');
+      updateAdminStats();
+      updateAdminDonorsList();
+      updateAdminInventory();
+      updateAdminRequests();
+      updateAdminCharts();
+    }
+
+    function handleLogout() {
+      sessionStorage.removeItem('adminToken');
+      isAuthenticated = false;
+      backToPublicSite();
+      showToast('Logged out successfully.','success');
+    }
+
+    function backToPublicSite() {
+      document.getElementById('admin-dashboard').classList.add('hidden');
+      document.getElementById('public-site').classList.remove('hidden');
+      window.scrollTo(0,0);
+    }
+
+    // ─────────────────────────────────────────────
+    // Admin stats — from real API
+    // ─────────────────────────────────────────────
+    async function updateAdminStats() {
+      try {
+        const stats = await api('/api/admin/stats');
+        document.getElementById('admin-stat-donors').textContent    = stats.totalDonors || 0;
+        document.getElementById('admin-stat-units').textContent     = stats.totalUnits || 0;
+        document.getElementById('admin-stat-pending').textContent   = stats.pendingRequests || 0;
+        document.getElementById('admin-stat-fulfilled').textContent = stats.fulfilledToday || 0;
+      } catch(e) { console.error('Stats error:', e); }
+    }
+
+    async function updateAdminCharts() {
+      try {
+        const [invRows, reqRows] = await Promise.all([
+          api('/api/inventory'),
+          api('/api/requests')
+        ]);
+
+        const invMap = {};
+        invRows.forEach(r => { invMap[r.blood_type] = (invMap[r.blood_type] || 0) + r.units; });
+        const stockData = bloodTypes.map(t => invMap[t] || 0);
+
+        if (adminStockChart) adminStockChart.destroy();
+        adminStockChart = new Chart(document.getElementById('adminStockChart').getContext('2d'), {
+          type:'bar',
+          data:{ labels:bloodTypes, datasets:[{ label:'Units', data:stockData,
+            backgroundColor:'rgba(220,38,38,0.7)', borderColor:'rgba(220,38,38,1)', borderWidth:2, borderRadius:8 }] },
+          options:{ responsive:true, maintainAspectRatio:true,
+            plugins:{ legend:{ display:false } },
+            scales:{ y:{ beginAtZero:true, ticks:{ stepSize:1 } } } }
+        });
+
+        const reqData = bloodTypes.map(t => reqRows.filter(r => r.blood_type === t).length);
+        if (adminRequestsChart) adminRequestsChart.destroy();
+        adminRequestsChart = new Chart(document.getElementById('adminRequestsChart').getContext('2d'), {
+          type:'doughnut',
+          data:{ labels:bloodTypes, datasets:[{ data:reqData,
+            backgroundColor:['rgba(220,38,38,0.8)','rgba(239,68,68,0.8)','rgba(248,113,113,0.8)',
+              'rgba(252,165,165,0.8)','rgba(185,28,28,0.8)','rgba(153,27,27,0.8)','rgba(127,29,29,0.8)','rgba(69,10,10,0.8)'],
+            borderWidth:2 }] },
+          options:{ responsive:true, maintainAspectRatio:true,
+            plugins:{ legend:{ position:'bottom', labels:{ boxWidth:12, padding:8, font:{ size:10 } } } } }
+        });
+      } catch(e) { console.error('Chart error:', e); }
+    }
+
+    // ─────────────────────────────────────────────
+    // Admin donors list — from real API
+    // ─────────────────────────────────────────────
+    let _allDonors = [];
+
+    function filterAdminDonors() {
+      const term = document.getElementById('admin-donor-search').value.toLowerCase();
+      renderDonorsList(_allDonors.filter(d => (d.donor_name||'').toLowerCase().includes(term)));
+    }
+
+    async function updateAdminDonorsList(searchTerm='') {
+      const container = document.getElementById('admin-donors-list');
+      container.innerHTML = '<p class="text-gray-400 text-center py-8">Loading…</p>';
+      try {
+        _allDonors = await api('/api/donors');
+        const filtered = searchTerm
+          ? _allDonors.filter(d => (d.donor_name||'').toLowerCase().includes(searchTerm))
+          : _allDonors;
+        renderDonorsList(filtered);
+      } catch(e) {
+        container.innerHTML = '<p class="text-red-500 text-center py-8">Failed to load donors.</p>';
+      }
+    }
+
+    function renderDonorsList(donors) {
+      const container = document.getElementById('admin-donors-list');
+      if (!donors.length) { container.innerHTML='<p class="text-gray-500 text-center py-12">No donors found.</p>'; return; }
+      container.innerHTML = donors.map(donor => `
+        <div class="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+              <span class="text-red-600 font-bold text-sm">${donor.blood_type||'?'}</span>
+            </div>
+            <div>
+              <p class="font-semibold text-gray-900">${donor.donor_name||'Unknown'}</p>
+              <p class="text-sm text-gray-600">${donor.email||''} • ${donor.contact||''}</p>
+              <p class="text-xs text-gray-500">Age: ${donor.age||'N/A'} • Weight: ${donor.weight||'N/A'}kg</p>
+              <p class="text-xs text-gray-400">Registered: ${donor.created_at ? new Date(donor.created_at).toLocaleDateString() : 'N/A'}</p>
+            </div>
+          </div>
+          <button onclick="confirmDelete('donor','${donor.id}')" class="text-red-500 hover:text-red-700 px-3 py-2 rounded-lg hover:bg-red-50 font-medium text-sm">🗑️ Delete</button>
+        </div>`).join('');
+    }
+
+    // ─────────────────────────────────────────────
+    // Inventory — from real API
+    // ─────────────────────────────────────────────
+    async function updateAdminInventory() {
+      const container = document.getElementById('admin-inventory-cards');
+      container.innerHTML = '<p class="text-gray-400 text-center py-8 col-span-full">Loading…</p>';
+      try {
+        const rows = await api('/api/inventory');
+        if (!rows.length) { container.innerHTML='<p class="text-gray-500 text-center py-12 col-span-full">No inventory records.</p>'; return; }
+        container.innerHTML = rows.map(item => {
+          const sc = item.units===0?'border-red-500':item.units<5?'border-yellow-500':'border-green-500';
+          return `
+            <div class="glass-card rounded-xl p-5 shadow-lg border-l-4 ${sc}">
+              <div class="flex justify-between items-start mb-3">
+                <span class="text-3xl font-bold text-red-600">${item.blood_type||'?'}</span>
+                <button onclick="confirmDelete('inventory','${item.id}')" class="text-gray-400 hover:text-red-500 text-sm">🗑️</button>
+              </div>
+              <p class="text-4xl font-bold text-gray-900">${item.units||0}</p>
+              <p class="text-sm text-gray-500">units</p>
+              <p class="text-xs text-gray-400 mt-2">${item.created_at ? new Date(item.created_at).toLocaleDateString() : 'N/A'}</p>
+            </div>`;
+        }).join('');
+      } catch(e) {
+        container.innerHTML = '<p class="text-red-500 text-center py-8 col-span-full">Failed to load inventory.</p>';
+      }
+    }
+
+    function showAddInventoryModal() {
+      showModal(`
+        <div class="p-6">
+          <h3 class="text-xl font-bold text-gray-900 mb-4">Add Blood Stock</h3>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">Blood Type</label>
+              <select id="inv-blood" class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                ${bloodTypes.map(t=>`<option value="${t}">${t}</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-2">Number of Units</label>
+              <input type="number" id="inv-units" min="1" class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500">
+            </div>
+            <div class="flex gap-3 pt-2">
+              <button onclick="hideModal()" class="flex-1 px-4 py-3 border-2 border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 font-semibold">Cancel</button>
+              <button id="inv-submit" onclick="handleInventorySubmit()" class="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white px-4 py-3 rounded-xl font-semibold">Add Stock</button>
+            </div>
+          </div>
+        </div>`);
+    }
+
+    async function handleInventorySubmit() {
+      const btn = document.getElementById('inv-submit');
+      btn.disabled = true; btn.textContent = 'Saving…';
+      try {
+        await api('/api/inventory', {
+          method: 'POST',
+          body: JSON.stringify({
+            blood_type: document.getElementById('inv-blood').value,
+            units: parseInt(document.getElementById('inv-units').value)
+          })
+        });
+        hideModal();
+        showToast('✅ Inventory updated successfully!','success');
+        updateAdminInventory();
+        updateAdminCharts();
+        updateAdminStats();
+        updatePublicBloodAvailability();
+      } catch(err) {
+        showToast('❌ ' + err.message, 'error');
+        btn.disabled = false; btn.textContent = 'Add Stock';
+      }
+    }
+
+    // ─────────────────────────────────────────────
+    // Requests — from real API
+    // ─────────────────────────────────────────────
+    function filterAdminRequests() {
+      updateAdminRequests(document.getElementById('admin-request-filter').value);
+    }
+
+    async function updateAdminRequests(statusFilter='all') {
+      const container = document.getElementById('admin-requests-list');
+      container.innerHTML = '<p class="text-gray-400 text-center py-8">Loading…</p>';
+      try {
+        let requests = await api('/api/requests');
+        if (statusFilter !== 'all') requests = requests.filter(r => r.status === statusFilter);
+        if (!requests.length) { container.innerHTML='<p class="text-gray-500 text-center py-12">No requests found.</p>'; return; }
+        container.innerHTML = requests.map(req => {
+          const uc = req.urgency==='critical'?'bg-red-100 text-red-700':req.urgency==='urgent'?'bg-yellow-100 text-yellow-700':'bg-blue-100 text-blue-700';
+          const sc = req.status==='fulfilled'?'bg-green-100 text-green-700':'bg-yellow-100 text-yellow-700';
+          return `
+            <div class="p-4 hover:bg-gray-50 transition-colors">
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-3">
+                  <span class="text-2xl font-bold text-red-600">${req.blood_type||'?'}</span>
+                  <div>
+                    <p class="font-semibold text-gray-900">${req.hospital||'Unknown'}</p>
+                    <p class="text-sm text-gray-600">${req.units||0} units needed</p>
+                    <p class="text-xs text-gray-400">${req.created_at ? new Date(req.created_at).toLocaleDateString() : ''}</p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="px-2 py-1 rounded-full text-xs font-medium ${uc}">${req.urgency||'normal'}</span>
+                  <span class="px-2 py-1 rounded-full text-xs font-medium ${sc}">${req.status||'pending'}</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 mt-3">
+                ${req.status==='pending'?`<button onclick="confirmFulfillRequest(${req.id},'${req.blood_type}','${req.hospital}',${req.units})" class="text-sm bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-lg font-medium">Fulfill</button>`:''}
+                <button onclick="confirmDelete('request','${req.id}')" class="text-sm text-red-600 hover:text-red-700 px-3 py-1 rounded-lg hover:bg-red-50 font-medium">Delete</button>
+              </div>
+            </div>`;
+        }).join('');
+      } catch(e) {
+        container.innerHTML = '<p class="text-red-500 text-center py-8">Failed to load requests.</p>';
+      }
+    }
+
+    function confirmFulfillRequest(id, blood_type, hospital, units) {
+      showModal(`
+        <div class="p-6 text-center">
+          <span class="text-5xl mb-4 block">✅</span>
+          <h3 class="text-xl font-bold text-gray-900 mb-4">Confirm Fulfill Request</h3>
+          <div class="text-left bg-gray-50 p-4 rounded-lg mb-4 space-y-2">
+            <p class="text-sm text-gray-700"><strong>Hospital:</strong> ${hospital}</p>
+            <p class="text-sm text-gray-700"><strong>Blood Type:</strong> ${blood_type}</p>
+            <p class="text-sm text-gray-700"><strong>Units Requested:</strong> ${units}</p>
+          </div>
+          <div class="flex gap-3">
+            <button onclick="hideModal()" class="flex-1 px-4 py-3 border-2 border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 font-semibold">Cancel</button>
+            <button id="fulfill-btn" onclick="executeFulfillRequest(${id})" class="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-xl font-semibold">Fulfill</button>
+          </div>
+        </div>`);
+    }
+
+    async function executeFulfillRequest(id) {
+      const btn = document.getElementById('fulfill-btn');
+      if (btn) { btn.disabled=true; btn.textContent='Processing…'; }
+      try {
+        await api(`/api/requests/${id}/fulfill`, { method: 'PUT' });
+        hideModal();
+        showToast('✅ Request fulfilled! Inventory updated.','success');
+        updateAllUI();
+      } catch(err) {
+        showToast('❌ ' + err.message, 'error');
+        hideModal();
+      }
+    }
+
+    // ─────────────────────────────────────────────
+    // Delete — calls the correct backend endpoint
+    // ─────────────────────────────────────────────
+    function confirmDelete(type, id) {
+      showModal(`
+        <div class="p-6 text-center">
+          <span class="text-5xl mb-4 block">⚠️</span>
+          <h3 class="text-xl font-bold text-gray-900 mb-2">Confirm Delete</h3>
+          <p class="text-gray-600 mb-6">This action cannot be undone.</p>
+          <div class="flex gap-3">
+            <button onclick="hideModal()" class="flex-1 px-4 py-3 border-2 border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 font-semibold">Cancel</button>
+            <button id="delete-btn" onclick="executeDelete('${type}','${id}')" class="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-xl font-semibold">Delete</button>
+          </div>
+        </div>`);
+    }
+
+    async function executeDelete(type, id) {
+      const btn = document.getElementById('delete-btn');
+      if (btn) { btn.disabled=true; btn.textContent='Deleting…'; }
+      try {
+        await api(`/api/${type}s/${id}`, { method: 'DELETE' });
+        hideModal();
+        showToast('✅ Record deleted successfully!','success');
+        updateAllUI();
+      } catch(err) {
+        showToast('❌ ' + err.message, 'error');
+        hideModal();
+      }
+    }
+
+    // ─────────────────────────────────────────────
+    // Tab switching
+    // ─────────────────────────────────────────────
+    function switchAdminTab(tab) {
+      ['stats','donors','inventory','requests'].forEach(t => {
+        document.getElementById(`admin-view-${t}`)?.classList.add('hidden');
+        const btn = document.getElementById(`admin-tab-${t}`);
+        if (btn) { btn.classList.remove('admin-tab-active'); btn.classList.add('admin-tab'); }
+      });
+      document.getElementById(`admin-view-${tab}`)?.classList.remove('hidden');
+      const activeBtn = document.getElementById(`admin-tab-${tab}`);
+      if (activeBtn) { activeBtn.classList.add('admin-tab-active'); activeBtn.classList.remove('admin-tab'); }
+    }
+
+    // ─────────────────────────────────────────────
+    // Utilities
+    // ─────────────────────────────────────────────
+    function scrollToSection(id) { document.getElementById(id)?.scrollIntoView({ behavior:'smooth', block:'start' }); }
+
+    function showModal(content) {
+      document.getElementById('modal-content').innerHTML = content;
+      document.getElementById('modal-overlay').classList.remove('hidden');
+    }
+    function hideModal() { document.getElementById('modal-overlay').classList.add('hidden'); }
+
+    function showToast(message, type) {
+      const toast = document.createElement('div');
+      toast.className = `px-6 py-3 rounded-xl shadow-2xl text-white font-semibold ${type==='success'?'bg-green-600':'bg-red-600'} transition-all`;
+      toast.textContent = message;
+      document.getElementById('toast-container').appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity='0';
+        setTimeout(() => toast.remove(), 500);
+      }, 3000);
+    }
+
+    // Start the app
+    window.addEventListener('DOMContentLoaded', initApp);
+  </script>
+</body>
+</html>
